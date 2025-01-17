@@ -11,7 +11,7 @@
 
 Laravel includes a simple to use rate limiting abstraction which, in conjunction with your application's [cache](cache), provides an easy way to limit any action during a specified window of time.
 
-> **Note**  
+> [!NOTE]  
 > If you are interested in rate limiting incoming HTTP requests, please consult the [rate limiter middleware documentation](routing#rate-limiting).
 
 <a name="cache-configuration"></a>
@@ -66,15 +66,23 @@ If you would like to manually interact with the rate limiter, a variety of other
         return 'Too many attempts!';
     }
 
-Alternatively, you may use the `remaining` method to retrieve the number of attempts remaining for a given key. If a given key has retries remaining, you may invoke the `hit` method to increment the number of total attempts:
+    RateLimiter::increment('send-message:'.$user->id);
+
+    // Send message...
+
+Alternatively, you may use the `remaining` method to retrieve the number of attempts remaining for a given key. If a given key has retries remaining, you may invoke the `increment` method to increment the number of total attempts:
 
     use Illuminate\Support\Facades\RateLimiter;
 
     if (RateLimiter::remaining('send-message:'.$user->id, $perMinute = 5)) {
-        RateLimiter::hit('send-message:'.$user->id);
+        RateLimiter::increment('send-message:'.$user->id);
 
         // Send message...
     }
+
+If you would like to increment the value for a given rate limiter key by more than one, you may provide the desired amount to the `increment` method:
+
+    RateLimiter::increment('send-message:'.$user->id, amount: 5);
 
 <a name="determining-limiter-availability"></a>
 #### Determining Limiter Availability
@@ -88,6 +96,10 @@ When a key has no more attempts left, the `availableIn` method returns the numbe
 
         return 'You may try again in '.$seconds.' seconds.';
     }
+
+    RateLimiter::increment('send-message:'.$user->id);
+
+    // Send message...
 
 <a name="clearing-attempts"></a>
 ### Clearing Attempts

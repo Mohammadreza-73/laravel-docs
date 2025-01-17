@@ -12,10 +12,10 @@
 - [Factory Relationships](#factory-relationships)
     - [Has Many Relationships](#has-many-relationships)
     - [Belongs To Relationships](#belongs-to-relationships)
-    - [Many To Many Relationships](#many-to-many-relationships)
+    - [Many to Many Relationships](#many-to-many-relationships)
     - [Polymorphic Relationships](#polymorphic-relationships)
     - [Defining Relationships Within Factories](#defining-relationships-within-factories)
-    - [Recycling An Existing Model For Relationships](#recycling-an-existing-model-for-relationships)
+    - [Recycling an Existing Model for Relationships](#recycling-an-existing-model-for-relationships)
 
 <a name="introduction"></a>
 ## Introduction
@@ -52,7 +52,7 @@ As you can see, in their most basic form, factories are classes that extend Lara
 
 Via the `fake` helper, factories have access to the [Faker](https://github.com/FakerPHP/Faker) PHP library, which allows you to conveniently generate various kinds of random data for testing and seeding.
 
-> **Note**  
+> [!NOTE]  
 > You can set your application's Faker locale by adding a `faker_locale` option to your `config/app.php` configuration file.
 
 <a name="defining-model-factories"></a>
@@ -70,7 +70,7 @@ php artisan make:factory PostFactory
 The new factory class will be placed in your `database/factories` directory.
 
 <a name="factory-and-model-discovery-conventions"></a>
-#### Model & Factory Discovery Conventions
+#### Model and Factory Discovery Conventions
 
 Once you have defined your factories, you may use the static `factory` method provided to your models by the `Illuminate\Database\Eloquent\Factories\HasFactory` trait in order to instantiate a factory instance for that model.
 
@@ -97,7 +97,7 @@ Then, define a `model` property on the corresponding factory:
         /**
          * The name of the factory's corresponding model.
          *
-         * @var string
+         * @var class-string<\Illuminate\Database\Eloquent\Model>
          */
         protected $model = Flight::class;
     }
@@ -123,6 +123,7 @@ State transformation methods typically call the `state` method provided by Larav
         });
     }
 
+<a name="trashed-state"></a>
 #### "Trashed" State
 
 If your Eloquent model can be [soft deleted](/docs/{{version}}/eloquent#soft-deleting), you may invoke the built-in `trashed` state method to indicate that the created model should already be "soft deleted". You do not need to manually define the `trashed` state as it is automatically available to all factories:
@@ -140,7 +141,6 @@ Factory callbacks are registered using the `afterMaking` and `afterCreating` met
 
     use App\Models\User;
     use Illuminate\Database\Eloquent\Factories\Factory;
-    use Illuminate\Support\Str;
 
     class UserFactory extends Factory
     {
@@ -157,6 +157,27 @@ Factory callbacks are registered using the `afterMaking` and `afterCreating` met
         }
 
         // ...
+    }
+
+You may also register factory callbacks within state methods to perform additional tasks that are specific to a given state:
+
+    use App\Models\User;
+    use Illuminate\Database\Eloquent\Factories\Factory;
+
+    /**
+     * Indicate that the user is suspended.
+     */
+    public function suspended(): Factory
+    {
+        return $this->state(function (array $attributes) {
+            return [
+                'account_status' => 'suspended',
+            ];
+        })->afterMaking(function (User $user) {
+            // ...
+        })->afterCreating(function (User $user) {
+            // ...
+        });
     }
 
 <a name="creating-models-using-factories"></a>
@@ -197,7 +218,7 @@ Alternatively, the `state` method may be called directly on the factory instance
         'name' => 'Abigail Otwell',
     ])->make();
 
-> **Note**  
+> [!NOTE]  
 > [Mass assignment protection](/docs/{{version}}/eloquent#mass-assignment) is automatically disabled when creating models using factories.
 
 <a name="persisting-models"></a>
@@ -360,7 +381,7 @@ For convenience, you may use Laravel's magic factory relationship methods to def
                 ->create();
 
 <a name="many-to-many-relationships"></a>
-### Many To Many Relationships
+### Many to Many Relationships
 
 Like [has many relationships](#has-many-relationships), "many to many" relationships may be created using the `has` method:
 
@@ -422,7 +443,7 @@ For convenience, you may use Laravel's magic factory relationship methods to def
 <a name="polymorphic-relationships"></a>
 ### Polymorphic Relationships
 
-[Polymorphic relationships](/docs/{{version}}/eloquent-relationships#polymorphic-relationships) may also be created using factories. Polymorphic "morph many" relationships are created in the same way as typical "has many" relationships. For example, if a `App\Models\Post` model has a `morphMany` relationship with a `App\Models\Comment` model:
+[Polymorphic relationships](/docs/{{version}}/eloquent-relationships#polymorphic-relationships) may also be created using factories. Polymorphic "morph many" relationships are created in the same way as typical "has many" relationships. For example, if an `App\Models\Post` model has a `morphMany` relationship with an `App\Models\Comment` model:
 
     use App\Models\Post;
 
@@ -438,7 +459,7 @@ Magic methods may not be used to create `morphTo` relationships. Instead, the `f
     )->create();
 
 <a name="polymorphic-many-to-many-relationships"></a>
-#### Polymorphic Many To Many Relationships
+#### Polymorphic Many to Many Relationships
 
 Polymorphic "many to many" (`morphToMany` / `morphedByMany`) relationships may be created just like non-polymorphic "many to many" relationships:
 
@@ -499,7 +520,7 @@ If the relationship's columns depend on the factory that defines it you may assi
     }
 
 <a name="recycling-an-existing-model-for-relationships"></a>
-### Recycling An Existing Model For Relationships
+### Recycling an Existing Model for Relationships
 
 If you have models that share a common relationship with another model, you may use the `recycle` method to ensure a single instance of the related model is recycled for all of the relationships created by the factory.
 

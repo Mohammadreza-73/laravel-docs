@@ -1,7 +1,7 @@
 # Database Testing
 
 - [Introduction](#introduction)
-    - [Resetting The Database After Each Test](#resetting-the-database-after-each-test)
+    - [Resetting the Database After Each Test](#resetting-the-database-after-each-test)
 - [Model Factories](#model-factories)
 - [Running Seeders](#running-seeders)
 - [Available Assertions](#available-assertions)
@@ -12,7 +12,7 @@
 Laravel provides a variety of helpful tools and assertions to make it easier to test your database driven applications. In addition, Laravel model factories and seeders make it painless to create test database records using your application's Eloquent models and relationships. We'll discuss all of these powerful features in the following documentation.
 
 <a name="resetting-the-database-after-each-test"></a>
-### Resetting The Database After Each Test
+### Resetting the Database After Each Test
 
 Before proceeding much further, let's discuss how to reset your database after each of your tests so that data from a previous test does not interfere with subsequent tests. Laravel's included `Illuminate\Foundation\Testing\RefreshDatabase` trait will take care of this for you. Simply use the trait on your test class:
 
@@ -21,7 +21,6 @@ Before proceeding much further, let's discuss how to reset your database after e
     namespace Tests\Feature;
 
     use Illuminate\Foundation\Testing\RefreshDatabase;
-    use Illuminate\Foundation\Testing\WithoutMiddleware;
     use Tests\TestCase;
 
     class ExampleTest extends TestCase
@@ -71,7 +70,6 @@ If you would like to use [database seeders](/docs/{{version}}/seeding) to popula
     use Database\Seeders\OrderStatusSeeder;
     use Database\Seeders\TransactionStatusSeeder;
     use Illuminate\Foundation\Testing\RefreshDatabase;
-    use Illuminate\Foundation\Testing\WithoutMiddleware;
     use Tests\TestCase;
 
     class ExampleTest extends TestCase

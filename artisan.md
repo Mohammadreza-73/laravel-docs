@@ -12,9 +12,10 @@
     - [Options](#options)
     - [Input Arrays](#input-arrays)
     - [Input Descriptions](#input-descriptions)
+    - [Prompting for Missing Input](#prompting-for-missing-input)
 - [Command I/O](#command-io)
     - [Retrieving Input](#retrieving-input)
-    - [Prompting For Input](#prompting-for-input)
+    - [Prompting for Input](#prompting-for-input)
     - [Writing Output](#writing-output)
 - [Registering Commands](#registering-commands)
 - [Programmatically Executing Commands](#programmatically-executing-commands)
@@ -61,8 +62,8 @@ All Laravel applications include Tinker by default. However, you may install Tin
 composer require laravel/tinker
 ```
 
-> **Note**  
-> Looking for a graphical UI for interacting with your Laravel application? Check out [Tinkerwell](https://tinkerwell.app)!
+> [!NOTE]  
+> Looking for hot reloading, multiline code editing, and autocompletion when interacting with your Laravel application? Check out [Tinkerwell](https://tinkerwell.app)!
 
 <a name="usage"></a>
 #### Usage
@@ -79,7 +80,7 @@ You can publish Tinker's configuration file using the `vendor:publish` command:
 php artisan vendor:publish --provider="Laravel\Tinker\TinkerServiceProvider"
 ```
 
-> **Warning**  
+> [!WARNING]  
 > The `dispatch` helper function and `dispatch` method on the `Dispatchable` class depends on garbage collection to place the job on the queue. Therefore, when using tinker, you should use `Bus::dispatch` or `Queue::push` to dispatch jobs.
 
 <a name="command-allow-list"></a>
@@ -154,7 +155,7 @@ Let's take a look at an example command. Note that we are able to request any de
         }
     }
 
-> **Note**  
+> [!NOTE]  
 > For greater code reuse, it is good practice to keep your console commands light and let them defer to application services to accomplish their tasks. In the example above, note that we inject a service class to do the "heavy lifting" of sending the e-mails.
 
 <a name="closure-commands"></a>
@@ -202,7 +203,7 @@ When defining a closure based command, you may use the `purpose` method to add a
 <a name="isolatable-commands"></a>
 ### Isolatable Commands
 
-> **Warning**
+> [!WARNING]  
 > To utilize this feature, your application must be using the `memcached`, `redis`, `dynamodb`, `database`, `file`, or `array` cache driver as your application's default cache driver. In addition, all servers must be communicating with the same central cache server.
 
 Sometimes you may wish to ensure that only one instance of a command can run at a time. To accomplish this, you may implement the `Illuminate\Contracts\Console\Isolatable` interface on your command class:
@@ -229,6 +230,21 @@ If you would like to specify the exit status code that the command should return
 
 ```shell
 php artisan mail:send 1 --isolated=12
+```
+
+<a name="lock-id"></a>
+#### Lock ID
+
+By default, Laravel will use the command's name to generate the string key that is used to acquire the atomic lock in your application's cache. However, you may customize this key by defining an `isolatableId` method on your Artisan command class, allowing you to integrate the command's arguments or options into the key:
+
+```php
+/**
+ * Get the isolatable ID for the command.
+ */
+public function isolatableId(): string
+{
+    return $this->argument('user');
+}
 ```
 
 <a name="lock-expiration-time"></a>
@@ -371,6 +387,93 @@ You may assign descriptions to input arguments and options by separating the arg
                             {user : The ID of the user}
                             {--queue : Whether the job should be queued}';
 
+<a name="prompting-for-missing-input"></a>
+### Prompting for Missing Input
+
+If your command contains required arguments, the user will receive an error message when they are not provided. Alternatively, you may configure your command to automatically prompt the user when required arguments are missing by implementing the `PromptsForMissingInput` interface:
+
+    <?php
+
+    namespace App\Console\Commands;
+
+    use Illuminate\Console\Command;
+    use Illuminate\Contracts\Console\PromptsForMissingInput;
+
+    class SendEmails extends Command implements PromptsForMissingInput
+    {
+        /**
+         * The name and signature of the console command.
+         *
+         * @var string
+         */
+        protected $signature = 'mail:send {user}';
+
+        // ...
+    }
+
+If Laravel needs to gather a required argument from the user, it will automatically ask the user for the argument by intelligently phrasing the question using either the argument name or description. If you wish to customize the question used to gather the required argument, you may implement the `promptForMissingArgumentsUsing` method, returning an array of questions keyed by the argument names:
+
+    /**
+     * Prompt for missing input arguments using the returned questions.
+     *
+     * @return array
+     */
+    protected function promptForMissingArgumentsUsing()
+    {
+        return [
+            'user' => 'Which user ID should receive the mail?',
+        ];
+    }
+
+You may also provide placeholder text by using a tuple containing the question and placeholder:
+
+    return [
+        'user' => ['Which user ID should receive the mail?', 'E.g. 123'],
+    ];
+
+If you would like complete control over the prompt, you may provide a closure that should prompt the user and return their answer:
+
+    use App\Models\User;
+    use function Laravel\Prompts\search;
+
+    // ...
+
+    return [
+        'user' => fn () => search(
+            label: 'Search for a user:',
+            placeholder: 'E.g. Taylor Otwell',
+            options: fn ($value) => strlen($value) > 0
+                ? User::where('name', 'like', "%{$value}%")->pluck('name', 'id')->all()
+                : []
+        ),
+    ];
+
+> [!NOTE]  
+The comprehensive [Laravel Prompts](/docs/{{version}}/prompts) documentation includes additional information on the available prompts and their usage.
+
+If you wish to prompt the user to select or enter [options](#options), you may include prompts in your command's `handle` method. However, if you only wish to prompt the user when they have also been automatically prompted for missing arguments, then you may implement the `afterPromptingForMissingArguments` method:
+
+    use Symfony\Component\Console\Input\InputInterface;
+    use Symfony\Component\Console\Output\OutputInterface;
+    use function Laravel\Prompts\confirm;
+
+    // ...
+
+    /**
+     * Perform actions after the user was prompted for missing arguments.
+     *
+     * @param  \Symfony\Component\Console\Input\InputInterface  $input
+     * @param  \Symfony\Component\Console\Output\OutputInterface  $output
+     * @return void
+     */
+    protected function afterPromptingForMissingArguments(InputInterface $input, OutputInterface $output)
+    {
+        $input->setOption('queue', confirm(
+            label: 'Would you like to queue the mail?',
+            default: $this->option('queue')
+        ));
+    }
+
 <a name="command-io"></a>
 ## Command I/O
 
@@ -400,7 +503,10 @@ Options may be retrieved just as easily as arguments using the `option` method. 
     $options = $this->options();
 
 <a name="prompting-for-input"></a>
-### Prompting For Input
+### Prompting for Input
+
+> [!NOTE]  
+> [Laravel Prompts](/docs/{{version}}/prompts) is a PHP package for adding beautiful and user-friendly forms to your command-line applications, with browser-like features including placeholder text and validation.
 
 In addition to displaying output, you may also ask the user to provide input during the execution of your command. The `ask` method will prompt the user with the given question, accept their input, and then return the user's input back to your command:
 
@@ -414,12 +520,16 @@ In addition to displaying output, you may also ask the user to provide input dur
         // ...
     }
 
+The `ask` method also accepts an optional second argument which specifies the default value that should be returned if no user input is provided:
+
+    $name = $this->ask('What is your name?', 'Taylor');
+
 The `secret` method is similar to `ask`, but the user's input will not be visible to them as they type in the console. This method is useful when asking for sensitive information such as passwords:
 
     $password = $this->secret('What is the password?');
 
 <a name="asking-for-confirmation"></a>
-#### Asking For Confirmation
+#### Asking for Confirmation
 
 If you need to ask the user for a simple "yes or no" confirmation, you may use the `confirm` method. By default, this method will return `false`. However, if the user enters `y` or `yes` in response to the prompt, the method will return `true`.
 
@@ -538,7 +648,7 @@ Sometimes, you may need more manual control over how a progress bar is advanced.
 
     $bar->finish();
 
-> **Note**  
+> [!NOTE]  
 > For more advanced options, check out the [Symfony Progress Bar component documentation](https://symfony.com/doc/current/components/console/helpers/progressbar.html).
 
 <a name="registering-commands"></a>

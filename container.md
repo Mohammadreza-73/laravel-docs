@@ -2,10 +2,10 @@
 
 - [Introduction](#introduction)
     - [Zero Configuration Resolution](#zero-configuration-resolution)
-    - [When To Use The Container](#when-to-use-the-container)
+    - [When to Utilize the Container](#when-to-use-the-container)
 - [Binding](#binding)
     - [Binding Basics](#binding-basics)
-    - [Binding Interfaces To Implementations](#binding-interfaces-to-implementations)
+    - [Binding Interfaces to Implementations](#binding-interfaces-to-implementations)
     - [Contextual Binding](#contextual-binding)
     - [Binding Primitives](#binding-primitives)
     - [Binding Typed Variadics](#binding-typed-variadics)
@@ -14,7 +14,7 @@
 - [Resolving](#resolving)
     - [The Make Method](#the-make-method)
     - [Automatic Injection](#automatic-injection)
-- [Method Invocation & Injection](#method-invocation-and-injection)
+- [Method Invocation and Injection](#method-invocation-and-injection)
 - [Container Events](#container-events)
 - [PSR-11](#psr-11)
 
@@ -71,7 +71,7 @@ If a class has no dependencies or only depends on other concrete classes (not in
     }
 
     Route::get('/', function (Service $service) {
-        die(get_class($service));
+        die($service::class);
     });
 
 In this example, hitting your application's `/` route will automatically resolve the `Service` class and inject it into your route's handler. This is game changing. It means you can develop your application and take advantage of dependency injection without worrying about bloated configuration files.
@@ -79,7 +79,7 @@ In this example, hitting your application's `/` route will automatically resolve
 Thankfully, many of the classes you will be writing when building a Laravel application automatically receive their dependencies via the container, including [controllers](/docs/{{version}}/controllers), [event listeners](/docs/{{version}}/events), [middleware](/docs/{{version}}/middleware), and more. Additionally, you may type-hint dependencies in the `handle` method of [queued jobs](/docs/{{version}}/queues). Once you taste the power of automatic and zero configuration dependency injection it feels impossible to develop without it.
 
 <a name="when-to-use-the-container"></a>
-### When To Use The Container
+### When to Utilize the Container
 
 Thanks to zero configuration resolution, you will often type-hint dependencies on routes, controllers, event listeners, and elsewhere without ever manually interacting with the container. For example, you might type-hint the `Illuminate\Http\Request` object on your route definition so that you can easily access the current request. Even though we never have to interact with the container to write this code, it is managing the injection of these dependencies behind the scenes:
 
@@ -134,7 +134,7 @@ $this->app->bindIf(Transistor::class, function (Application $app) {
 });
 ```
 
-> **Note**  
+> [!NOTE]  
 > There is no need to bind classes into the container if they do not depend on any interfaces. The container does not need to be instructed on how to build these objects, since it can automatically resolve these objects using reflection.
 
 <a name="binding-a-singleton"></a>
@@ -149,6 +149,14 @@ The `singleton` method binds a class or interface into the container that should
     $this->app->singleton(Transistor::class, function (Application $app) {
         return new Transistor($app->make(PodcastParser::class));
     });
+
+You may use the `singletonIf` method to register a singleton container binding only if a binding has not already been registered for the given type:
+
+```php
+$this->app->singletonIf(Transistor::class, function (Application $app) {
+    return new Transistor($app->make(PodcastParser::class));
+});
+```
 
 <a name="binding-scoped"></a>
 #### Binding Scoped Singletons
@@ -176,7 +184,7 @@ You may also bind an existing object instance into the container using the `inst
     $this->app->instance(Transistor::class, $service);
 
 <a name="binding-interfaces-to-implementations"></a>
-### Binding Interfaces To Implementations
+### Binding Interfaces to Implementations
 
 A very powerful feature of the service container is its ability to bind an interface to a given implementation. For example, let's assume we have an `EventPusher` interface and a `RedisEventPusher` implementation. Once we have coded our `RedisEventPusher` implementation of this interface, we can register it with the service container like so:
 
@@ -412,7 +420,7 @@ For example, you may type-hint a repository defined by your application in a con
     }
 
 <a name="method-invocation-and-injection"></a>
-## Method Invocation & Injection
+## Method Invocation and Injection
 
 Sometimes you may wish to invoke a method on an object instance while allowing the container to automatically inject that method's dependencies. For example, given the following class:
 
